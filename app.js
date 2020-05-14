@@ -7,7 +7,7 @@ const client = new Discord.Client();
 
 require("dotenv").config();
 
-const url = `mongodb+srv://${process.env.MONGODB_NICKNAME}:${process.env.MONGODB_PASSWORD}@mongodatabase-tt40v.mongodb.net/test?retryWrites=true&w=majority`;
+const url = `mongodb://localhost:27017`;
 
 mongoose.connect(url, { useNewUrlParser: true, useUnifiedTopology: true });
 
@@ -23,77 +23,168 @@ db.on("error", (err) => {
   console.error("connection error:", err);
 });
 
-const dowodSchema = mongoose.Schema({
-  idWlasciciela: {},
-  imie: {},
-  nazwisko: {},
-  wiek: {},
-  data: {},
-  narodowosc: {},
+const msgSchema = mongoose.Schema({
+  messageAuthor: {},
+  messageAuthorId: {},
+  messageContent: {},
+  day: {},
+  month: {},
+  year: {},
 });
 
-var Dowod = mongoose.model("Dowod", dowodSchema);
+const authorSchema = mongoose.Schema({
+  authorNicknameId: {},
+  authorNick: {},
+  dailyMessages: {},
+  monthlyMessages: {},
+  yearlyMessages: {},
+});
 
+let Msg = mongoose.model("msg", msgSchema);
+let Author = mongoose.model("author", authorSchema);
+let authors = [];
 app.listen(3000);
 
-const capitalize = (s) => {
-  if (typeof s !== "string") return "";
-  return s.charAt(0).toUpperCase() + s.slice(1);
+const updateAuthorsCollection = async (todayDay, todayMonth, todayYear) => {
+  await Msg.find({}, function (err, doc) {
+    authors = doc;
+  });
+
+  let authorsUniqueIds = authors.map((author) => author.messageAuthorId);
+  authorsUniqueIds = authorsUniqueIds.filter(
+    (v, i) => authorsUniqueIds.indexOf(v) === i && v != undefined
+  );
+  authorsUniqueIds.forEach(async (id) => {});
+
+  authorsUniqueIds.forEach(async (id) => {
+    let tempDaily, tempMonthly, tempYearly, nickname;
+    allMes = 0;
+    await Msg.findOne({ messageAuthorId: id }, function (err, doc) {
+      nickname = doc.messageAuthor;
+    });
+    await Msg.countDocuments({ messageAuthorId: id, day: todayDay }, function (
+      err,
+      allMessages
+    ) {
+      tempDaily = allMessages;
+    });
+    await Msg.countDocuments(
+      { messageAuthorId: id, month: todayMonth },
+      function (err, allMessages) {
+        tempMonthly = allMessages;
+      }
+    );
+    await Msg.countDocuments(
+      { messageAuthorId: id, year: todayYear },
+      function (err, allMessages) {
+        tempYearly = allMessages;
+      }
+    );
+
+    Author.updateOne(
+      { authorNicknameId: id },
+      {
+        authorNicknameId: id,
+        authorNick: nickname,
+        dailyMessages: tempDaily,
+        monthlyMessages: tempMonthly,
+        yearlyMessages: tempYearly,
+      },
+      { upsert: true },
+
+      function (err) {
+        // console.log(err);
+      }
+    );
+  });
 };
 
-client.on("ready", () => {
+client.on("ready", async () => {
   console.log("CONNECTED AS " + client.user.tag);
+  setInterval(async () => {
+    let today = new Date();
+    let todayDay = new Date().getDate();
+    let todayMonth = new Date().getMonth() + 1;
+    let todayYear = new Date().getFullYear();
+    let messagesCount;
+
+    if ((today.getMinutes() == 47 && today.getHours() == 20) || true) {
+      var startTime = Date.now();
+      var elapsedTime = 0;
+      var interval = setInterval(function () {
+        elapsedTime = Date.now() - startTime;
+      }, 100);
+
+      await updateAuthorsCollection(todayDay, todayMonth, 2020);
+      await Msg.find({}, function (err, doc) {
+        messagesCount = doc.length;
+      });
+      await Author.find({})
+        .sort({ dailyMessages: -1 })
+        .limit(5)
+        .exec(function (err, doc) {
+          let discordMessage = `
+          __***Ranking tryhardów***__
+
+    Podczas dzisiejszego dnia zostało wysłanych **${messagesCount}** wiadomości
+
+    __***Pobieranie wiadomości zajęło***__ 
+    :alarm_clock: **${(elapsedTime / 1000).toFixed(2)}** sekund
+
+    __***Najlepsze tryhardy***__
+    :first_place: **${doc[0].authorNick}** - ${
+            doc[0].dailyMessages
+          } wiadomości czyli **${(
+            (doc[0].dailyMessages / messagesCount) *
+            100
+          ).toFixed(2)}% wszystkich wiadomości!**
+    :second_place: **${doc[1].authorNick}** - ${
+            doc[1].dailyMessages
+          } wiadomości czyli **${(
+            (doc[1].dailyMessages / messagesCount) *
+            100
+          ).toFixed(2)}% wszystkich wiadomości!**
+    :third_place: **${doc[2].authorNick}** - ${
+            doc[2].dailyMessages
+          } wiadomości czyli **${(
+            (doc[2].dailyMessages / messagesCount) *
+            100
+          ).toFixed(2)}% wszystkich wiadomości!**
+    :military_medal: **${doc[3].authorNick}** - ${
+            doc[3].dailyMessages
+          } wiadomości czyli **${(
+            (doc[3].dailyMessages / messagesCount) *
+            100
+          ).toFixed(2)}% wszystkich wiadomości!**
+    :medal: **${doc[4].authorNick}** - ${
+            doc[4].dailyMessages
+          } wiadomości czyli **${(
+            (doc[4].dailyMessages / messagesCount) *
+            100
+          ).toFixed(2)}% wszystkich wiadomości!**`;
+
+          client.channels.cache.get(`696493487121760331`).send(discordMessage);
+        });
+
+      clearInterval(interval);
+    }
+  }, 2 * 1000);
 
   client.on("message", async (message) => {
-    if (
-      message.channel.id == "696493487121760331" &&
-      message.content == "!rpbot"
-    ) {
-      message.channel
-        .send(`${message.author} Aby stworzyć swój dowód napisz i podaj kolejno informacje o Twojej postaci: !rpbot Imie Nazwisko dataUrodzenia (w formacie DD/MM/RRRR) Narodowość \n
-	  na przykład: !rpbot Jan Nowak 26/11/2000 Polska \n
-	  aby edytować swój dowód napisz: !rpbot kryterium(imie/nazwisko/dataurodzenia/narodowosc) nowaWartość \n
-	  na przykład: !rpbot Imie Jaś \n
-	  aby zobaczyć swój dowód napisz: !dowod`);
-    } else if (
-      message.content.split(" ").length == 5 &&
-      message.content.split(" ")[0] == "!rpbot"
-    ) {
-      Dowod.findOne({ idWlasciciela: message.author.id }, async function (
-        err,
-        doc
-      ) {
-        if (err) return handleError(err);
-        if (doc != null && doc.idWlasciciela == message.author.id) {
-          message.channel.send(
-            `${message.author} masz już swój dowód, edytuj go.`
-          );
-        } else {
-          var testDowod = await new Dowod({
-            idWlasciciela: message.author.id,
-            imie: capitalize(message.content.split(" ")[1]),
-            nazwisko: capitalize(message.content.split(" ")[2]),
-            wiek:
-              parseInt(new Date().getFullYear()) -
-              parseInt(
-                message.content
-                  .split(" ")[3]
-                  .substring(message.content.split(" ")[3].length - 4)
-              ),
-            data: message.content.split(" ")[3],
-            narodowosc: capitalize(message.content.split(" ")[4]),
-          });
+    let newMsg = await new Msg({
+      messageAuthor: message.author.username,
+      messageAuthorId: message.author.id,
+      messageContent: message.content,
+      day: new Date().getDate(),
+      month: new Date().getMonth() + 1,
+      year: new Date().getFullYear(),
+    });
 
-          testDowod.save(function (err) {
-            if (err) throw err;
-            message.channel.send(
-              `${message.author} twój dowód został utworzony!`
-            );
-            console.log("SUCCESS");
-          });
-        }
-      });
-    }
+    newMsg.save(function (err) {
+      if (err) throw err;
+
+      console.log("SUCCESS");
+    });
   });
 });
 
