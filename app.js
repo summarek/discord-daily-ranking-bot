@@ -46,8 +46,8 @@ let authors = [];
 app.listen(3000);
 
 const updateAuthorsCollection = async (todayDay, todayMonth, todayYear) => {
-  await Msg.find({}, function (err, doc) {
-    authors = doc;
+  await Msg.find({}, async function (err, doc) {
+    authors = await doc;
   });
 
   let authorsUniqueIds = authors.map((author) => author.messageAuthorId);
@@ -62,40 +62,47 @@ const updateAuthorsCollection = async (todayDay, todayMonth, todayYear) => {
     await Msg.findOne({ messageAuthorId: id }, function (err, doc) {
       nickname = doc.messageAuthor;
     });
-    await Msg.countDocuments({ messageAuthorId: id, day: todayDay }, function (
-      err,
-      allMessages
+    await Msg.countDocuments(
+      { messageAuthorId: id, day: todayDay },
+      async function (err, allMessages) {
+        tempDaily = await allMessages;
+      }
+    );
+    await Msg.countDocuments(
+      { messageAuthorId: id, month: todayMonth },
+      async function (err, allMessages) {
+        tempMonthly = await allMessages;
+      }
+    );
+    await Msg.countDocuments(
+      { messageAuthorId: id, year: 2020 },
+      async function (err, allMessages) {
+        console.log(allMessages);
+
+        tempYearly = await allMessages;
+      }
+    );
+    if (
+      nickname != null &&
+      tempDaily != null &&
+      tempMonthly != null &&
+      tempYearly != null
     ) {
-      tempDaily = allMessages;
-    });
-    await Msg.countDocuments(
-      { messageAuthorId: id, month: todayMonth },
-      function (err, allMessages) {
-        tempMonthly = allMessages;
-      }
-    );
-    await Msg.countDocuments(
-      { messageAuthorId: id, year: todayYear },
-      function (err, allMessages) {
-        tempYearly = allMessages;
-      }
-    );
+      await Author.updateOne(
+        { authorNicknameId: id },
+        {
+          authorNick: nickname,
+          dailyMessages: tempDaily,
+          monthlyMessages: tempMonthly,
+          yearlyMessages: tempYearly,
+        },
+        { upsert: true },
 
-    Author.updateOne(
-      { authorNicknameId: id },
-      {
-        authorNicknameId: id,
-        authorNick: nickname,
-        dailyMessages: tempDaily,
-        monthlyMessages: tempMonthly,
-        yearlyMessages: tempYearly,
-      },
-      { upsert: true },
-
-      function (err) {
-        // console.log(err);
-      }
-    );
+        function (err) {
+          // console.log(err);
+        }
+      );
+    }
   });
 };
 
@@ -105,10 +112,10 @@ client.on("ready", async () => {
     let today = new Date();
     let todayDay = new Date().getDate();
     let todayMonth = new Date().getMonth() + 1;
-    let todayYear = new Date().getFullYear();
+    let todayYear = 2020;
     let messagesCount;
 
-    if ((today.getMinutes() == 47 && today.getHours() == 20) || true) {
+    if (today.getHours() == 23 && today.getMinutes() == 59) {
       var startTime = Date.now();
       var elapsedTime = 0;
       var interval = setInterval(function () {
@@ -163,14 +170,22 @@ client.on("ready", async () => {
             100
           ).toFixed(2)}% wszystkich wiadomości!**`;
 
-          client.channels.cache.get(`696493487121760331`).send(discordMessage);
+          client.channels.cache.get(`710585120637321246`).send(discordMessage);
         });
 
       clearInterval(interval);
     }
-  }, 2 * 1000);
+  }, 50 * 1000);
 
   client.on("message", async (message) => {
+    console.log(message.channel.name);
+
+    let todayDay = new Date().getDate();
+    let todayMonth = new Date().getMonth() + 1;
+    let todayYear = new Date().getFullYear();
+    await updateAuthorsCollection(todayDay, todayMonth, 2020);
+    console.log("authors akualni");
+
     let newMsg = await new Msg({
       messageAuthor: message.author.username,
       messageAuthorId: message.author.id,
