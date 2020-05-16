@@ -43,7 +43,7 @@ const authorSchema = mongoose.Schema({
 let Msg = mongoose.model("msg", msgSchema);
 let Author = mongoose.model("author", authorSchema);
 let authors = [];
-app.listen(3000);
+app.listen(3005);
 
 const updateAuthorsCollection = async (todayDay, todayMonth, todayYear) => {
   await Msg.find({}, async function (err, doc) {
@@ -77,7 +77,6 @@ const updateAuthorsCollection = async (todayDay, todayMonth, todayYear) => {
     await Msg.countDocuments(
       { messageAuthorId: id, year: 2020 },
       async function (err, allMessages) {
-        console.log(allMessages);
 
         tempYearly = await allMessages;
       }
@@ -115,14 +114,17 @@ client.on("ready", async () => {
     let todayYear = 2020;
     let messagesCount;
 
-    if (today.getHours() == 23 && today.getMinutes() == 59) {
+
+
+    if (today.getHours() == 0 && today.getMinutes() == 1) {
+	    console.log("idzie!")
       var startTime = Date.now();
       var elapsedTime = 0;
       var interval = setInterval(function () {
         elapsedTime = Date.now() - startTime;
       }, 100);
 
-      await updateAuthorsCollection(todayDay, todayMonth, 2020);
+      await updateAuthorsCollection(todayDay - 1, todayMonth, 2020);
       await Msg.find({}, function (err, doc) {
         messagesCount = doc.length;
       });
@@ -170,21 +172,17 @@ client.on("ready", async () => {
             100
           ).toFixed(2)}% wszystkich wiadomości!**`;
 
+	//client.channels.cache.get(`696493487121760331`).send(discordMessage);
           client.channels.cache.get(`710585120637321246`).send(discordMessage);
         });
 
       clearInterval(interval);
+    } else {
+    	await updateAuthorsCollection(todayDay, todayMonth, 2020);
     }
   }, 50 * 1000);
-
   client.on("message", async (message) => {
-    console.log(message.channel.name);
 
-    let todayDay = new Date().getDate();
-    let todayMonth = new Date().getMonth() + 1;
-    let todayYear = new Date().getFullYear();
-    await updateAuthorsCollection(todayDay, todayMonth, 2020);
-    console.log("authors akualni");
 
     let newMsg = await new Msg({
       messageAuthor: message.author.username,
@@ -198,9 +196,9 @@ client.on("ready", async () => {
     newMsg.save(function (err) {
       if (err) throw err;
 
-      console.log("SUCCESS");
     });
   });
+
 });
 
 client.login(process.env.DISCORD_TOKEN);
