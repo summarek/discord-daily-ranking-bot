@@ -5,7 +5,7 @@ const client = new Discord.Client();
 
 require("dotenv").config();
 Author = [];
-app.listen(3000);
+app.listen(process.env.PORT || 3000);
 
 client.on("ready", async () => {
   console.log("CONNECTED AS " + client.user.tag);
