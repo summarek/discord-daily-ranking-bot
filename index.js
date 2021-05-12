@@ -4,7 +4,13 @@ const Discord = require("discord.js");
 const client = new Discord.Client();
 
 require("dotenv").config();
-Author = [];
+Author = [
+  {
+    authorNicknameId: "252135278649540609",
+    authorNick: "Kamyk",
+    messages: 1,
+  },
+];
 app.listen(process.env.PORT || 3000);
 
 client.on("ready", async () => {
