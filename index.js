@@ -4,13 +4,7 @@ const Discord = require("discord.js");
 const client = new Discord.Client();
 
 require("dotenv").config();
-Author = [
-  {
-    authorNicknameId: "252135278649540609",
-    authorNick: "Kamyk",
-    messages: 1,
-  },
-];
+Author = [];
 app.listen(process.env.PORT || 3000);
 
 client.on("ready", async () => {
@@ -18,7 +12,7 @@ client.on("ready", async () => {
   console.log();
   setInterval(async () => {
     let today = new Date();
-    if ((today.getHours() == 23 && today.getMinutes() == 59) || true) {
+    if (today.getHours() == 23 && today.getMinutes() == 59) {
       console.log("idzie");
 
       var startTime = Date.now();
@@ -82,7 +76,7 @@ client.on("ready", async () => {
         100
       ).toFixed(2)}% wszystkich wiadomości!**`;
 
-      client.channels.cache.get(`696493487121760331`).send(discordMessage);
+      client.channels.cache.get(`710585120637321246`).send(discordMessage);
 
       clearInterval(interval);
     }
