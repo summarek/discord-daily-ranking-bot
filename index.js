@@ -12,7 +12,7 @@ client.on("ready", async () => {
   console.log();
   setInterval(async () => {
     let today = new Date();
-    if (today.getHours() == 23 && today.getMinutes() == 59) {
+    if (today.getHours() == 21 && today.getMinutes() == 59) {
       console.log("idzie");
 
       var startTime = Date.now();
